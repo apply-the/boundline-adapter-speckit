@@ -1,0 +1,23 @@
+[package]
+name = "boundline-adapter-speckit"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Workflow bridge from Boundline into Spec Kit"
+
+[dependencies]
+# Keep the dependency on the latest released host protocol tag until the next
+# Boundline release carrying the corrected post-066 semantics is published.
+boundline-adapters = { git = "https://github.com/apply-the/boundline", tag = "0.66.0" }
+clap = { version = "4", features = ["derive"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[package.metadata.boundline-framework-adapter]
+adapter_id = "speckit"
+protocol_line = "framework-adapter-v1"
+supported_boundline_range = ">=0.66.0,<0.67.0"
+transport = "stdio-json-stdin-stdout"
+stderr_policy = "trace_only"
+lifecycle = "one_shot_no_graceful_shutdown"
