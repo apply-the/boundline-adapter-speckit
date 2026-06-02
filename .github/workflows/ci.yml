@@ -24,6 +24,15 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo fmt --all --check
 
+  distribution-metadata:
+    name: distribution-metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: chmod +x scripts/sync-distribution-metadata.sh
+      - run: scripts/sync-distribution-metadata.sh
+      - run: git diff --exit-code -- distribution/homebrew/Formula/boundline-adapter-speckit.rb
+
   test:
     name: test
     runs-on: ubuntu-latest

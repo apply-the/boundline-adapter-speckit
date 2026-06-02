@@ -59,6 +59,28 @@ cargo fmt --all --check
 ./scripts/coverage.sh
 ```
 
+## Homebrew Tap
+
+This repository now exposes the same two-step Homebrew flow that `boundline`
+uses:
+
+- `scripts/sync-distribution-metadata.sh` regenerates `distribution/homebrew/Formula/boundline-adapter-speckit.rb` from `Cargo.toml` and `distribution/channel-metadata.toml`
+- `.github/workflows/sync-homebrew-tap.yml` copies that formula into the tap repository declared in `distribution/channel-metadata.toml`
+
+Local dry run:
+
+```bash
+bash scripts/sync-distribution-metadata.sh
+bash scripts/release/sync-homebrew-tap.sh \
+	--formula distribution/homebrew/Formula/boundline-adapter-speckit.rb \
+	--tap-root homebrew-boundline-adapter-speckit
+```
+
+The generated formula expects a real semver release tag in
+`apply-the/boundline-adapter-speckit`. Until the first public tag exists, the
+tap can be updated and reviewed locally, but `brew install` from the published
+tap will still depend on that release tag being pushed.
+
 ## Setup Guidance
 
 Boundline's known `speckit` profile already prefills the two required path

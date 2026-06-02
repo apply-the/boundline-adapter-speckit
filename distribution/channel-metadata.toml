@@ -1,0 +1,13 @@
+# The Homebrew release line will track the first public adapter tag once it is
+# published from this repository.
+adapter_version = "0.1.0"
+source_fallback = "cargo install --path ."
+
+[channels.homebrew]
+status = "ready_for_publication"
+tap_repository = "apply-the/homebrew-boundline-adapter-speckit"
+tap_name = "apply-the/boundline-adapter-speckit"
+formula_name = "boundline-adapter-speckit"
+formula_path = "Formula/boundline-adapter-speckit.rb"
+install_command = "brew tap apply-the/boundline-adapter-speckit && brew install boundline-adapter-speckit"
+update_command = "brew upgrade boundline-adapter-speckit"
