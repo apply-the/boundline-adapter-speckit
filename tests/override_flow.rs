@@ -46,6 +46,23 @@ const PLANNING_WORKFLOW_ID: &str = "speckit-planning";
 const IMPLEMENTATION_WORKFLOW_ID: &str = "speckit-implementation";
 const PLANNING_READINESS_FIXTURE_REF: &str = ".speckit/planning-readiness.json";
 const ANALYZE_COMMAND_REF: &str = "speckit.analyze";
+const REAL_FEATURE_DIR_REF: &str = "specs/066-agentic-framework-integration";
+const REAL_FEATURE_SPEC_CONTENT: &str = "# Agentic Framework Integration\n";
+const REAL_FEATURE_PLAN_CONTENT: &str = "# Plan\n";
+const REAL_FEATURE_TASKS_CONTENT: &str = "# Tasks\n";
+const IMPLEMENT_PROMPT_CONTENT: &str = "# Speckit Implement\n";
+const PLANNING_WORKFLOW_ASSET_CONTENT: &str = concat!(
+    "id: \"speckit-planning\"\n",
+    "steps:\n",
+    "  - command: speckit.specify\n",
+    "  - command: speckit.plan\n",
+    "  - command: speckit.tasks\n",
+);
+const IMPLEMENTATION_WORKFLOW_ASSET_CONTENT: &str = concat!(
+    "id: \"speckit-implementation\"\n",
+    "steps:\n",
+    "  - command: speckit.implement\n",
+);
 
 #[derive(Serialize)]
 #[serde(rename_all = "snake_case")]
@@ -845,30 +862,42 @@ fn temp_workspace(prefix: &str) -> Result<PathBuf, String> {
 
 fn temp_specify_workspace(prefix: &str) -> Result<PathBuf, String> {
     let workspace = temp_workspace(prefix)?;
-    let boundline_repo = sibling_repo_path("boundline")?;
-    let output = Command::new("rsync")
-        .args([
-            "-a",
-            "--exclude",
-            ".git",
-            "--exclude",
-            "target",
-            "--exclude",
-            ".boundline",
-            &format!("{}/", boundline_repo.display()),
-            &format!("{}/", workspace.display()),
-        ])
-        .output()
-        .map_err(|error| format!("failed to copy Spec Kit workspace fixture: {error}"))?;
-
-    if !output.status.success() {
-        return Err(format!(
-            "failed to copy Spec Kit workspace fixture: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
+    seed_specify_workspace(&workspace)?;
     Ok(workspace)
+}
+
+fn seed_specify_workspace(workspace_path: &Path) -> Result<(), String> {
+    let feature_dir = workspace_path.join(REAL_FEATURE_DIR_REF);
+    fs::create_dir_all(&feature_dir)
+        .map_err(|error| format!("failed to create real feature dir: {error}"))?;
+    let plan_path = workspace_path.join(PLAN_ARTIFACT_REF);
+    write_file(
+        &workspace_path.join(SPEC_ARTIFACT_REF),
+        REAL_FEATURE_SPEC_CONTENT,
+    )?;
+    write_file(&plan_path, REAL_FEATURE_PLAN_CONTENT)?;
+    write_file(
+        &workspace_path.join(TASKS_ARTIFACT_REF),
+        REAL_FEATURE_TASKS_CONTENT,
+    )?;
+    write_plan_stage_scripts(
+        workspace_path,
+        &json_script(&setup_plan_json(&plan_path)?),
+        &json_script(&check_prerequisites_json(&feature_dir)?),
+    )?;
+    write_file(
+        &workspace_path.join(PLANNING_WORKFLOW_ARTIFACT_REF),
+        PLANNING_WORKFLOW_ASSET_CONTENT,
+    )?;
+    write_file(
+        &workspace_path.join(IMPLEMENTATION_WORKFLOW_ARTIFACT_REF),
+        IMPLEMENTATION_WORKFLOW_ASSET_CONTENT,
+    )?;
+    write_file(
+        &workspace_path.join(IMPLEMENT_PROMPT_REF),
+        IMPLEMENT_PROMPT_CONTENT,
+    )?;
+    Ok(())
 }
 
 fn create_feature_packet(workspace: &Path) -> Result<(PathBuf, PathBuf), String> {
@@ -921,7 +950,7 @@ fn create_run_stage_workspace(
     )?;
     write_file(
         &workspace_path.join(IMPLEMENTATION_WORKFLOW_ARTIFACT_REF),
-        "workflow: speckit-implementation\n",
+        IMPLEMENTATION_WORKFLOW_ASSET_CONTENT,
     )
 }
 
@@ -1036,17 +1065,6 @@ fn run_with_stdin_and_env(
     }
 
     Ok(output)
-}
-
-fn sibling_repo_path(repo_name: &str) -> Result<PathBuf, String> {
-    let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
-    let sibling_parent = manifest_dir.parent().ok_or_else(|| {
-        format!(
-            "repository root {} has no parent directory",
-            manifest_dir.display()
-        )
-    })?;
-    Ok(sibling_parent.join(repo_name))
 }
 
 fn write_fixture_file(workspace: &Path, fixture_ref: &str) -> Result<(), String> {

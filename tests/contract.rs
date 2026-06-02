@@ -10,7 +10,7 @@ use boundline_adapter_speckit::{
     ConfigValueKind, EmitHookRequest, ExecuteStageRequest, PreflightRequest,
     SpeckitBootstrapMetadata, TEMPLATE_REPO_FIELD_KEY, bootstrap_metadata, bootstrap_status_line,
 };
-use serde_json::Value;
+use serde_json::{Value, json};
 
 const TEST_BOUNDLINE_VERSION: &str = "0.66.0";
 const TEST_WORKSPACE_REF: &str = "../tmp/example-workspace";
@@ -39,6 +39,23 @@ const PARSE_JSON_ERROR_PREFIX: &str = "failed to parse stdin JSON";
 const SPECIFY_BIN_ENV_VAR: &str = "BOUNDLINE_SPECKIT_SPECIFY_BIN";
 const PLANNING_WORKFLOW_ID: &str = "speckit-planning";
 const IMPLEMENTATION_WORKFLOW_ID: &str = "speckit-implementation";
+const FEATURE_DIR_REF: &str = "specs/066-agentic-framework-integration";
+const FEATURE_SPEC_CONTENT: &str = "# Agentic Framework Integration\n";
+const FEATURE_PLAN_CONTENT: &str = "# Plan\n";
+const FEATURE_TASKS_CONTENT: &str = "# Tasks\n";
+const IMPLEMENT_PROMPT_CONTENT: &str = "# Speckit Implement\n";
+const PLANNING_WORKFLOW_ASSET_CONTENT: &str = concat!(
+    "id: \"speckit-planning\"\n",
+    "steps:\n",
+    "  - command: speckit.specify\n",
+    "  - command: speckit.plan\n",
+    "  - command: speckit.tasks\n",
+);
+const IMPLEMENTATION_WORKFLOW_ASSET_CONTENT: &str = concat!(
+    "id: \"speckit-implementation\"\n",
+    "steps:\n",
+    "  - command: speckit.implement\n",
+);
 
 #[test]
 fn bootstrap_metadata_matches_known_profile() -> Result<(), String> {
@@ -286,11 +303,11 @@ fn execute_stage_command_returns_blocked_run_recovery_for_real_workflow() -> Res
 
 #[test]
 fn split_workflow_assets_publish_correct_ids_and_command_surfaces() -> Result<(), String> {
-    let boundline_repo = sibling_repo_path("boundline")?;
-    let planning_asset = fs::read_to_string(boundline_repo.join(PLANNING_WORKFLOW_ARTIFACT_REF))
+    let workspace = temp_specify_workspace("speckit-contract-workflow-assets")?;
+    let planning_asset = fs::read_to_string(workspace.join(PLANNING_WORKFLOW_ARTIFACT_REF))
         .map_err(|error| format!("failed to read planning workflow asset: {error}"))?;
     let implementation_asset =
-        fs::read_to_string(boundline_repo.join(IMPLEMENTATION_WORKFLOW_ARTIFACT_REF))
+        fs::read_to_string(workspace.join(IMPLEMENTATION_WORKFLOW_ARTIFACT_REF))
             .map_err(|error| format!("failed to read implementation workflow asset: {error}"))?;
 
     assert_contains(&planning_asset, "id: \"speckit-planning\"")?;
@@ -463,14 +480,23 @@ fn write_fake_specify_script(
 }
 
 fn write_executable(path: &std::path::Path, contents: &str) -> Result<(), String> {
-    fs::write(path, contents)
-        .map_err(|error| format!("failed to write {}: {error}", path.display()))?;
+    write_file(path, contents)?;
     let mut permissions = fs::metadata(path)
         .map_err(|error| format!("failed to read metadata {}: {error}", path.display()))?
         .permissions();
     permissions.set_mode(0o755);
     fs::set_permissions(path, permissions)
         .map_err(|error| format!("failed to set permissions {}: {error}", path.display()))
+}
+
+fn write_file(path: &std::path::Path, contents: &str) -> Result<(), String> {
+    let Some(parent) = path.parent() else {
+        return Err(format!("path {} had no parent directory", path.display()));
+    };
+    fs::create_dir_all(parent)
+        .map_err(|error| format!("failed to create parent {}: {error}", parent.display()))?;
+    fs::write(path, contents)
+        .map_err(|error| format!("failed to write {}: {error}", path.display()))
 }
 
 fn assert_contains(contents: &str, needle: &str) -> Result<(), String> {
@@ -537,30 +563,52 @@ fn sibling_repo_path(repo_name: &str) -> Result<PathBuf, String> {
 
 fn temp_specify_workspace(prefix: &str) -> Result<PathBuf, String> {
     let workspace = temp_workspace(prefix)?;
-    let boundline_repo = sibling_repo_path("boundline")?;
-    let output = Command::new("rsync")
-        .args([
-            "-a",
-            "--exclude",
-            ".git",
-            "--exclude",
-            "target",
-            "--exclude",
-            ".boundline",
-            &format!("{}/", boundline_repo.display()),
-            &format!("{}/", workspace.display()),
-        ])
-        .output()
-        .map_err(|error| format!("failed to copy Spec Kit workspace fixture: {error}"))?;
-
-    if !output.status.success() {
-        return Err(format!(
-            "failed to copy Spec Kit workspace fixture: {}",
-            String::from_utf8_lossy(&output.stderr)
-        ));
-    }
-
+    seed_specify_workspace(&workspace)?;
     Ok(workspace)
+}
+
+fn seed_specify_workspace(workspace: &std::path::Path) -> Result<(), String> {
+    write_file(&workspace.join(SPEC_ARTIFACT_REF), FEATURE_SPEC_CONTENT)?;
+    write_file(&workspace.join(PLAN_ARTIFACT_REF), FEATURE_PLAN_CONTENT)?;
+    write_file(&workspace.join(TASKS_ARTIFACT_REF), FEATURE_TASKS_CONTENT)?;
+    write_file(
+        &workspace.join(PLANNING_WORKFLOW_ARTIFACT_REF),
+        PLANNING_WORKFLOW_ASSET_CONTENT,
+    )?;
+    write_file(
+        &workspace.join(IMPLEMENTATION_WORKFLOW_ARTIFACT_REF),
+        IMPLEMENTATION_WORKFLOW_ASSET_CONTENT,
+    )?;
+    write_file(
+        &workspace.join(IMPLEMENT_PROMPT_REF),
+        IMPLEMENT_PROMPT_CONTENT,
+    )?;
+    write_executable(
+        &workspace.join(".specify/scripts/bash/setup-plan.sh"),
+        &setup_plan_script(workspace)?,
+    )?;
+    write_executable(
+        &workspace.join(".specify/scripts/bash/check-prerequisites.sh"),
+        &check_prerequisites_script(workspace)?,
+    )?;
+    Ok(())
+}
+
+fn setup_plan_script(workspace: &std::path::Path) -> Result<String, String> {
+    let payload = serde_json::to_string(&json!({
+        "IMPL_PLAN": workspace.join(PLAN_ARTIFACT_REF).to_string_lossy().into_owned(),
+    }))
+    .map_err(|error| format!("failed to encode setup-plan fixture JSON: {error}"))?;
+    Ok(format!("#!/bin/sh\nprintf '%s' '{payload}'\n"))
+}
+
+fn check_prerequisites_script(workspace: &std::path::Path) -> Result<String, String> {
+    let payload = serde_json::to_string(&json!({
+        "FEATURE_DIR": workspace.join(FEATURE_DIR_REF).to_string_lossy().into_owned(),
+        "AVAILABLE_DOCS": ["tasks.md"],
+    }))
+    .map_err(|error| format!("failed to encode prerequisites fixture JSON: {error}"))?;
+    Ok(format!("#!/bin/sh\nprintf '%s' '{payload}'\n"))
 }
 
 fn expect_string(document: &Value, pointer: &str, expected: &str) -> Result<(), String> {
