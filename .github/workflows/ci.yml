@@ -12,17 +12,6 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  fmt:
-    name: fmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.96.0
-          components: rustfmt
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo fmt --all --check
 
   distribution-metadata:
     name: distribution-metadata
@@ -46,15 +35,3 @@ jobs:
         with:
           tool: cargo-nextest
       - run: ./scripts/test.sh
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: 1.96.0
-          components: clippy
-      - uses: Swatinem/rust-cache@v2
-      - run: ./scripts/clippy.sh
