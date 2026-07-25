@@ -1,0 +1,32 @@
+[graph]
+all-features = true
+
+[licenses]
+allow = [
+    "Apache-2.0",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "MIT",
+    "Unicode-3.0",
+]
+confidence-threshold = 0.93
+private = { ignore = true }
+
+[advisories]
+ignore = []
+version = 2
+yanked = "warn"
+
+[bans]
+multiple-versions = "warn"
+wildcards = "allow"
+
+[sources]
+# T019 owns the 0.66 bridge during M1. It remains allowed until the immutable
+# boundline-protocol prerelease exists and the adapter can replace it.
+allow-git = ["https://github.com/apply-the/boundline"]
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+unknown-git = "deny"
+unknown-registry = "deny"
