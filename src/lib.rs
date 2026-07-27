@@ -1,7 +1,5 @@
 //! Known Speckit adapter scaffold for the Boundline framework-adapter contract.
 
-pub use boundline_adapters::{framework_catalog, framework_protocol};
-
 mod config;
 mod hooks;
 pub mod profile;

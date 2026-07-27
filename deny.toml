@@ -24,9 +24,8 @@ multiple-versions = "warn"
 wildcards = "allow"
 
 [sources]
-# T019 owns the 0.66 bridge during M1. It remains allowed until the immutable
-# boundline-protocol prerelease exists and the adapter can replace it.
-allow-git = ["https://github.com/apply-the/boundline"]
+# T019 admits only registry dependencies for the 0.90 protocol line. Git
+# sources remain denied so the qualified package graph cannot drift by tag.
 allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 unknown-git = "deny"
 unknown-registry = "deny"

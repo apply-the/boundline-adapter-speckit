@@ -18,7 +18,7 @@ pub const CONTRACT_LINE: &str = "framework-adapter-v1";
 pub const BOOTSTRAP_STATUS: &str = "workflow-bridge";
 
 /// Supported Boundline compatibility range for the Speckit scaffold.
-pub const SUPPORTED_BOUNDLINE_RANGE: &str = ">=0.66.0,<0.67.0";
+pub const SUPPORTED_BOUNDLINE_RANGE: &str = ">=0.90.0,<1.0.0";
 
 /// Required template repository field key.
 pub const TEMPLATE_REPO_FIELD_KEY: &str = "template_repo";

@@ -12,7 +12,7 @@ use boundline_adapter_speckit::{
 use serde::Serialize;
 use serde_json::Value;
 
-const TEST_BOUNDLINE_VERSION: &str = "0.66.0";
+const TEST_BOUNDLINE_VERSION: &str = "0.90.0";
 const TEST_WORKSPACE_REF: &str = "../tmp/example-workspace";
 const TEST_HOOK_PAYLOAD_REF: &str = ".boundline/traces/run.json";
 const PLAN_STAGE_KEY: &str = "plan";

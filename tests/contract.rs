@@ -12,7 +12,7 @@ use boundline_adapter_speckit::{
 };
 use serde_json::{Value, json};
 
-const TEST_BOUNDLINE_VERSION: &str = "0.66.0";
+const TEST_BOUNDLINE_VERSION: &str = "0.90.0";
 const TEST_WORKSPACE_REF: &str = "../tmp/example-workspace";
 const TEST_TRACE_PAYLOAD_REF: &str = ".boundline/traces/run.json";
 const TEST_SPEC_ARTIFACT_REF: &str = "specs/066-agentic-framework-integration/spec.md";

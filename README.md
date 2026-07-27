@@ -30,16 +30,16 @@ Current bridge contract:
 - `emit-hook` returns an enveloped delivered response for subscribed hook smoke tests
 - the real bridge executes `.specify/workflows/speckit/planning.yml` and `.specify/workflows/speckit/implementation.yml` by YAML path while the response payload continues to report the semantic workflow IDs
 
-The crate now pins the released shared protocol package directly:
+The crate pins the qualified prerelease protocol package exactly:
 
 ```toml
 [dependencies]
-boundline-adapters = { git = "https://github.com/apply-the/boundline", tag = "0.66.0" }
+boundline-protocol = "=0.90.0"
 ```
 
-It also re-exports `boundline_adapters::framework_protocol` and
-`boundline_adapters::framework_catalog` so downstream validation and custom
-bridge code can reference the same released host-owned contract surface.
+The tested support line is `>=0.90.0,<1.0.0`. Preflight rejects malformed,
+older, and `1.0.0` or later host versions. Runtime transport adoption and DTO
+replacement remain assigned to the later adapter implementation tasks.
 
 ## Quality Automation
 
@@ -126,7 +126,7 @@ Example response:
 		"protocol_line": "framework-adapter-v1",
 		"adapter_id": "speckit",
 		"adapter_version": "0.1.0",
-		"supported_boundline_range": ">=0.66.0,<0.67.0",
+		"supported_boundline_range": ">=0.90.0,<1.0.0",
 		"supported_transports": [
 			{
 				"transport": "stdio",
@@ -166,7 +166,7 @@ Example response:
 Validate the default known-profile config values:
 
 ```bash
-printf '%s' '{"boundline_version":"0.66.0","workspace_ref":"../tmp/example-workspace","non_interactive":true,"config_values":[{"field_key":"template_repo","value_kind":"path","path_value":"../boundline-framework-template"},{"field_key":"adapter_repo","value_kind":"path","path_value":"../boundline-adapter-speckit"}]}' | cargo run -- preflight
+printf '%s' '{"boundline_version":"0.90.0","workspace_ref":"../tmp/example-workspace","non_interactive":true,"config_values":[{"field_key":"template_repo","value_kind":"path","path_value":"../boundline-framework-template"},{"field_key":"adapter_repo","value_kind":"path","path_value":"../boundline-adapter-speckit"}]}' | cargo run -- preflight
 ```
 
 Every `preflight`, `execute-stage`, and `emit-hook` response uses the same
@@ -240,15 +240,15 @@ cargo fmt --all --check
 cargo clippy --all-targets -- -D warnings
 ```
 
-Those suites stayed green and reconfirmed the corrected Speckit profile:
+Those suites stayed green and reconfirmed the corrected Speckit profile. The
+M1E package-readiness gate additionally verifies that:
 
-- the crate now pins `boundline-adapters` to the released Boundline `0.66.0`
-  git tag for sibling-repo compatibility tracking
-- the published dependency pin remains on `0.66.0` because no newer Boundline
-  release tag exists yet; corrected Spec 066 semantics are therefore recorded
-  in host and sibling `Unreleased` notes rather than through an invented git tag
-- `describe` still declares adapter ID `speckit`, the released compatibility
-	range, and the V1 stdio JSON transport (`stdin -> stdout`)
+- the crate resolves the exact `boundline-protocol = "=0.90.0"` candidate from
+  an isolated registry-shaped source
+- `describe` declares adapter ID `speckit`, the tested
+  `>=0.90.0,<1.0.0` compatibility range, and the V1 stdio JSON transport
+  (`stdin -> stdout`)
+- `preflight` rejects host versions outside that range before stage work
 - `preflight`, `execute-stage`, and `emit-hook` still use the same standard
 	stdout envelope the host expects from the protocol line
 - missing required repo paths still block preflight explicitly, while ready

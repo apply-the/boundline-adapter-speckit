@@ -14,11 +14,11 @@ occur in minor releases.
 - Corrected `run` so it now executes the split implementation workflow asset,
   returns workflow ID `speckit-implementation`, reports implementation
   validation refs, and no longer reruns planning commands.
-- Pinned `boundline-adapters` to the released Boundline `0.66.0` git tag for
-  sibling-repo compatibility tracking.
-- Re-exported the shared framework-adapter catalog and protocol modules so the
-  workflow bridge and its tests can reference the released host-owned contract
-  surface directly.
+- Replaced the legacy full-runtime Git bridge with an exact
+  `boundline-protocol = "=0.90.0"` registry dependency after qualifying the
+  immutable local package candidate.
+- Declared and enforced the tested `>=0.90.0,<1.0.0` host compatibility line;
+  malformed and unsupported host versions now fail preflight closed.
 - Kept structured stderr optional and trace-only, and kept the V1 bridge
   bounded to one-shot stdio execution with no graceful shutdown lifecycle.
 

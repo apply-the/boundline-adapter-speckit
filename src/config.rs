@@ -2,13 +2,16 @@
 
 use crate::profile::{
     ADAPTER_REPO_FIELD_KEY, ConfigFieldDefinition, ConfigValue, ConfigValueKind, PreflightRequest,
-    PreflightResponse, TEMPLATE_REPO_FIELD_KEY,
+    PreflightResponse, SUPPORTED_BOUNDLINE_RANGE, TEMPLATE_REPO_FIELD_KEY,
 };
+use semver::{Version, VersionReq};
 
 const STATUS_READY: &str = "ready";
 const STATUS_BLOCKED: &str = "blocked";
 const REASON_MISSING_REQUIRED_CONFIG: &str = "missing_required_config";
+const REASON_UNSUPPORTED_BOUNDLINE_VERSION: &str = "unsupported_boundline_version";
 const RECOVERY_TEMPLATE: &str = "boundline adapter add speckit --workspace <workspace>";
+const RECOVERY_SUPPORTED_BOUNDLINE_VERSION: &str = "use a Boundline version in >=0.90.0,<1.0.0";
 const NON_INTERACTIVE_POLICY_FAIL: &str = "fail";
 const TEMPLATE_REPO_DISPLAY_LABEL: &str = "Template repository";
 const TEMPLATE_REPO_PROMPT: &str = "Path to the reusable template repo";
@@ -39,6 +42,10 @@ pub(crate) fn required_config_fields() -> Vec<ConfigFieldDefinition> {
 
 /// Validates and normalizes the Speckit preflight config payload.
 pub(crate) fn preflight_response_for_request(request: &PreflightRequest) -> PreflightResponse {
+    if !supports_boundline_version(&request.boundline_version) {
+        return unsupported_boundline_version_response();
+    }
+
     match SpeckitResolvedConfig::from_values(&request.config_values) {
         Ok(config) => PreflightResponse {
             status: STATUS_READY.to_string(),
@@ -56,6 +63,27 @@ pub(crate) fn preflight_response_for_request(request: &PreflightRequest) -> Pref
             missing_fields,
             recovery: Some(RECOVERY_TEMPLATE.to_string()),
         },
+    }
+}
+
+fn supports_boundline_version(version: &str) -> bool {
+    let Ok(version) = Version::parse(version) else {
+        return false;
+    };
+    let Ok(requirement) = VersionReq::parse(SUPPORTED_BOUNDLINE_RANGE) else {
+        return false;
+    };
+    requirement.matches(&version)
+}
+
+fn unsupported_boundline_version_response() -> PreflightResponse {
+    PreflightResponse {
+        status: STATUS_BLOCKED.to_string(),
+        normalized_config_values: Vec::new(),
+        warnings: Vec::new(),
+        reason: Some(REASON_UNSUPPORTED_BOUNDLINE_VERSION.to_string()),
+        missing_fields: Vec::new(),
+        recovery: Some(RECOVERY_SUPPORTED_BOUNDLINE_VERSION.to_string()),
     }
 }
 
